@@ -1,6 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
+const mongoose = require('mongoose');
+
+// Middleware to validate MongoDB ObjectID
+const validateObjectId = (req, res, next) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid task ID format'
+    });
+  }
+  next();
+};
 
 // Get all tasks
 router.get('/', async (req, res) => {
@@ -34,7 +46,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get single task
-router.get('/:id', async (req, res) => {
+router.get('/:id', validateObjectId, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     
@@ -74,7 +86,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update task
-router.put('/:id', async (req, res) => {
+router.put('/:id', validateObjectId, async (req, res) => {
   try {
     const task = await Task.findByIdAndUpdate(
       req.params.id,
@@ -105,22 +117,26 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete task
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', validateObjectId, async (req, res) => {
   try {
+    console.log('Attempting to delete task with ID:', req.params.id);
     const task = await Task.findByIdAndDelete(req.params.id);
 
     if (!task) {
+      console.log('Task not found for deletion:', req.params.id);
       return res.status(404).json({
         success: false,
         error: 'Task not found'
       });
     }
 
+    console.log('Task deleted successfully:', req.params.id);
     res.json({
       success: true,
       data: {}
     });
   } catch (error) {
+    console.error('Error deleting task:', error);
     res.status(500).json({
       success: false,
       error: error.message
